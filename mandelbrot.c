@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <SDL.h>
+#include <limits.h>
 
 #define uint32 unsigned int // Certified to be 32bits size on a Mac
 
@@ -44,7 +45,7 @@ int main(int argc, char * argv[]) {
 		printf("Error : maximal height is 768 (%u chosen)\n", height);
 		return 1;
 	}
-	if (iterations > 30) {
+	if (iterations > 1000) {
 		printf("Error : maximal number of iterations is 30 (%u chosen)\n", iterations);
 		return 1;
 	}
@@ -55,7 +56,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	// We allocate some memory for the pixel colors
-	pixelColors = (uint32 *)calloc(iterations, iterations * sizeof(uint32));
+	pixelColors = (uint32 *)calloc(iterations + 1, (iterations + 1) * sizeof(uint32));
 
 	// Defines the color of the mandelbrot pixels
 	defineMandelbrotColors(pixelColors, iterations, isColored);
@@ -73,8 +74,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	// Creates the renderer for the latter window
-	SDL_Renderer * theRenderer = SDL_CreateRenderer(theWindow, -1,
-			SDL_RENDERER_ACCELERATED | SDL_RENDERER_PRESENTVSYNC);
+	SDL_Renderer * theRenderer = SDL_CreateRenderer(theWindow, -1,0);
 	if (!theRenderer) {
 		SDL_DestroyWindow(theWindow);
 		printf("SDL_CreateRenderer Error: %s\n", SDL_GetError());
@@ -134,10 +134,10 @@ void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColor
 			unsigned char red = (unsigned char)((i * (255 / iterations))/3);
 			unsigned char green = (unsigned char)((i * (255 / iterations))/6);
 			unsigned char blue = (unsigned char)(i * (255 / iterations));
-			pixelColors[i] = (((((255 << 2) + red) << 2) + green) << 2) + blue;
+			pixelColors[i] = (((((255 << 8) + red) << 8) + green) << 8) + blue;
 		} else {
 			unsigned char gray = (unsigned char)(i * (255 / iterations));
-			pixelColors[i] = (((((255 << 2) + gray) << 2) + gray) << 2) + gray;
+			pixelColors[i] = (((((255 << 8) + gray) << 8) + gray) << 8) + gray;
 		}
 	}
 }
@@ -176,7 +176,7 @@ void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
 			}
 
 			pixels[width * y + x] = pixelColors[a];
-			printf("pixel %u %u : couleur %u, a %u\n", x, y, pixels[width * y + x],a);
+			//printf("pixel %u %u : couleur %u, a %u\n", x, y, pixels[width * y + x],a);
 		}
 	}
 }
