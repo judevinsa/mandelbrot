@@ -4,13 +4,59 @@
 
 #define uint32 unsigned int // Certified to be 32bits size on a Mac
 
+void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColored);
+void updateMandelbrotPixels(uint32 * pixels, uint32 width, uint32 height, uint32 iterations);
 
 
 int main(int argc, char * argv[]) {
 
 	// Various variables
+	uint32 width = 1024;
+	uint32 height = 768;
+	uint32 * pixels;
+	uint32 * pixelColors;
+	uint32 iterations = 0;
+	int isColored = 0;
+
 	int quit = 0;
 	SDL_Event event;
+
+	// We redefine the parameters
+	if (argc != 5) {
+		printf("Error, usage : mandelbrot width height iterations colored\n");
+		printf("For the colors : 0 is Black and White, 1 is Colored\n");
+		return 1;
+	}
+
+	// If negative numbers are entered, they will be huged after cast
+	width = (uint32)atoi(argv[1]);
+	height = (uint32)atoi(argv[2]);
+	iterations = (uint32)atoi(argv[3]);
+	isColored = atoi(argv[4]);
+
+	// Test of the conditions
+	if (width > 1024) {
+		printf("Error : maximal width is 1024\n");
+		return 1;
+	}
+	if (height > 768) {
+		printf("Error : maximal height is 768\n");
+		return 1;
+	}
+	if (iterations > 30) {
+		printf("Error : maximal number of iterations is 30\n");
+		return 1;
+	}
+	if (isColored != 0 || isColored != 1) {
+		printf("Error : choose you color properly, 0 is Black and White, 1 is Colored\n");
+		return 1;
+	}
+
+	// We allocate some memory for the pixel colors
+	pixelColors = (uint32 *)malloc(iterations * sizeof(uint32));
+
+	// Defines the color of the mandelbrot pixels
+	defineMandelbrotColors(pixelColors, iterations, isColored);
 
 	// Video initializing
 	if (SDL_Init(SDL_INIT_VIDEO) != 0) {
@@ -19,7 +65,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	// Gets a new window for rendering
-	SDL_Window * theWindow = SDL_CreateWindow("Mandelbrot", 200, 200, 1024, 768, 0);
+	SDL_Window * theWindow = SDL_CreateWindow("Mandelbrot", 200, 200, width, height, 0);
 	if (!theWindow) {
 		printf("SDL_CreateWindow Error: %s\n", SDL_GetError());
 	}
@@ -37,15 +83,17 @@ int main(int argc, char * argv[]) {
 	// Creates a new texture for the window
 	//	Texture is made of ARGB pixels, we well draw pixel by pixel
 	SDL_Texture * theTexture = SDL_CreateTexture(theRenderer, SDL_PIXELFORMAT_ARGB8888,
-			SDL_TEXTUREACCESS_STATIC, 1024, 768);
+			SDL_TEXTUREACCESS_STATIC, width, height);
 
 	// A big bunch of pixels (pixel infos fits in an uint32)
-	uint32 * pixels = (uint32 *)malloc(1024 * 768 * sizeof(uint32));
+	pixels = (uint32 *)malloc(width * height * sizeof(uint32));
 
 
 	// While loop of the application
 	while (!quit) {
 
+		// Updates the texture at each cycle
+		SDL_UpdateTexture(theTexture, NULL, pixels, width * sizeof(uint32));
 
 		// Listens for any user event
 		SDL_WaitEvent(&event);
@@ -56,8 +104,14 @@ int main(int argc, char * argv[]) {
 				quit = 1;
 				break;
 		}
+
+		// Renders the updated window
+		SDL_RenderClear(theRenderer);
+		SDL_RenderCopy(theRenderer, theTexture, NULL, NULL);
+		SDL_RenderPresent(theRenderer);
 	}
 
+	free(pixels);
 	SDL_DestroyTexture(theTexture);
 	SDL_DestroyRenderer(theRenderer);
 	SDL_DestroyWindow(theWindow);
@@ -65,3 +119,24 @@ int main(int argc, char * argv[]) {
 
 	return 0;
 }
+
+
+/*
+ *	Redefines the colors that will be used on the pixels with the parameters entered
+ */
+void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColored) {
+
+}
+
+
+
+/*
+ * Overwrites the pixels following the calculation of the mandelbrot figure
+ *
+ */
+void updateMandelbrotPixels(uint32 * pixels, uint32 width, uint32 height, uint32 iterations) {
+
+}
+
+
+
