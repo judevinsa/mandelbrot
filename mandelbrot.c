@@ -90,56 +90,15 @@ int main(int argc, char * argv[]) {
 	// A big bunch of pixels (pixel infos fits in an uint32)
 	pixels = (uint32 *)calloc(width * height, width * height * sizeof(uint32));
 
-	//updateMandelbrotPixels(pixels, pixelColors, width, height, iterations);
-
-	// Real time constructing variables
-	uint32 realTimeX = 0;
-	uint32 realTimeY = 0;
+	updateMandelbrotPixels(pixels, pixelColors, width, height, iterations);
 
 	// While loop of the application
-	while (realTimeY < height) {
-
-				float minX = -2.4;
-				float maxX = 2.4;
-				float minY = -1.5;
-				float maxY = 1.5;
-
-			for (; realTimeX < width; realTimeX++) {
-				float realC = minX + (maxX - minX) / ((float)width) * (float)realTimeX;
-				float imC = minY + (maxY - minY) / ((float)height) * (float)realTimeY;
-				float realZ = 0;
-				float imZ = 0;
-				uint32 a = 0;
-
-				for (; a < iterations; a++) {
-					float realPart = realZ;
-					float imPart = imZ;
-
-					realZ = realPart * realPart - imPart * imPart + realC;
-					imZ = 2 * realPart * imPart + imC;
-
-					if ((realZ * realZ + imZ * imZ) >= 4.0) {
-						break;
-					}
-				}
-
-				pixels[width * realTimeY + realTimeX] = pixelColors[a];
-			}
-			realTimeY++;
-			realTimeX = 0;
+	while (!quit) {
 			
-		
 
 		// Updates the texture at each cycle
 		SDL_UpdateTexture(theTexture, NULL, pixels, width * sizeof(uint32));
 
-		// Renders the updated window
-		SDL_RenderClear(theRenderer);
-		SDL_RenderCopy(theRenderer, theTexture, NULL, NULL);
-		SDL_RenderPresent(theRenderer);
-	}
-
-	while (!quit) {
 		// Listens for any user event
 		SDL_WaitEvent(&event);
 
@@ -149,8 +108,13 @@ int main(int argc, char * argv[]) {
 				quit = 1;
 				break;
 			}
+
+		// Renders the updated window
+		SDL_RenderClear(theRenderer);
+		SDL_RenderCopy(theRenderer, theTexture, NULL, NULL);
+		SDL_RenderPresent(theRenderer);
 	}
-	
+
 
 	free(pixels);
 	free(pixelColors);
@@ -174,7 +138,7 @@ void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColor
 			unsigned char blue = (unsigned char)(97 + i * (255 / iterations));
 			pixelColors[i] = (((((255 << 8) + red) << 8) + green) << 8) + blue;
 		} else {
-			unsigned char gray = (unsigned char)(55 + i * (200 / iterations));
+			unsigned char gray = (unsigned char)(i * (255 / iterations));
 			pixelColors[i] = (((((255 << 8) + gray) << 8) + gray) << 8) + gray;
 		}
 	}
