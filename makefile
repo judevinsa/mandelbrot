@@ -1,11 +1,13 @@
-LIB = framework SDL2
+CFLAGS = -I/Library/Frameworks/SDL2.framework/Headers
+LDFLAGS = -Wl -F/Library/Frameworks -framework SDL2
 
+DEBUG = -v
 
-mandelbrot : mandelbrot.c
-	gcc -${LIB} -o mandelbrot mandelbrot.c
+all : mandelbrot
 
-verb : mandelbrot.c
-	gcc -${LIB} -v -o mandelbrot mandelbrot.c
+mandelbrot : mandelbrot.o
+	gcc $(DEBUG) -o mandelbrot mandelbrot.o $(LDFLAGS)
 
-debug : mandelbrot.c
-	gcc -${LIB} -g -o mandelbrot mandelbrot.c
+mandelbrot.o : mandelbrot.c
+	gcc -o mandelbrot.o -c mandelbrot.c $(CFLAGS)
+
