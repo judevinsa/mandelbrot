@@ -90,14 +90,56 @@ int main(int argc, char * argv[]) {
 	// A big bunch of pixels (pixel infos fits in an uint32)
 	pixels = (uint32 *)calloc(width * height, width * height * sizeof(uint32));
 
-	updateMandelbrotPixels(pixels, pixelColors, width, height, iterations);
+	//updateMandelbrotPixels(pixels, pixelColors, width, height, iterations);
+
+	// Real time constructing variables
+	uint32 realTimeX = 0;
+	uint32 realTimeY = 0;
 
 	// While loop of the application
-	while (!quit) {
+	while (realTimeY < height) {
+
+				float minX = -2.4;
+				float maxX = 2.4;
+				float minY = -1.5;
+				float maxY = 1.5;
+
+			for (; realTimeX < width; realTimeX++) {
+				float realC = minX + (maxX - minX) / ((float)width) * (float)realTimeX;
+				float imC = minY + (maxY - minY) / ((float)height) * (float)realTimeY;
+				float realZ = 0;
+				float imZ = 0;
+				uint32 a = 0;
+
+				for (; a < iterations; a++) {
+					float realPart = realZ;
+					float imPart = imZ;
+
+					realZ = realPart * realPart - imPart * imPart + realC;
+					imZ = 2 * realPart * imPart + imC;
+
+					if ((realZ * realZ + imZ * imZ) >= 4.0) {
+						break;
+					}
+				}
+
+				pixels[width * realTimeY + realTimeX] = pixelColors[a];
+			}
+			realTimeY++;
+			realTimeX = 0;
+			
+		
 
 		// Updates the texture at each cycle
 		SDL_UpdateTexture(theTexture, NULL, pixels, width * sizeof(uint32));
 
+		// Renders the updated window
+		SDL_RenderClear(theRenderer);
+		SDL_RenderCopy(theRenderer, theTexture, NULL, NULL);
+		SDL_RenderPresent(theRenderer);
+	}
+
+	while (!quit) {
 		// Listens for any user event
 		SDL_WaitEvent(&event);
 
@@ -106,13 +148,9 @@ int main(int argc, char * argv[]) {
 			case SDL_QUIT :
 				quit = 1;
 				break;
-		}
-
-		// Renders the updated window
-		SDL_RenderClear(theRenderer);
-		SDL_RenderCopy(theRenderer, theTexture, NULL, NULL);
-		SDL_RenderPresent(theRenderer);
+			}
 	}
+	
 
 	free(pixels);
 	free(pixelColors);
