@@ -2,9 +2,22 @@
 #include <stdlib.h>
 #include <SDL.h>
 #include <limits.h>
+#include <pthread.h>
 
 #define uint32 unsigned int // Certified to be 32bits size on a Mac
 
+// Definition of threads
+struct thread_data {
+	int thread_id;
+	uint32 * pixels;
+	uint32 * pixelColors;
+	uint32 width, height, iterations;
+};
+
+void * threadHandler(void * thread_data); 
+
+
+// Functions used in the computation process
 void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColored);
 void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
 		uint32 height, uint32 iterations);
@@ -90,7 +103,25 @@ int main(int argc, char * argv[]) {
 	// A big bunch of pixels (pixel infos fits in an uint32)
 	pixels = (uint32 *)calloc(width * height, width * height * sizeof(uint32));
 
-	updateMandelbrotPixels(pixels, pixelColors, width, height, iterations);
+	// We define here the content of the pthread that will computes the Mandelbrot
+	pthread_t pMandelbrot;
+	pthread_attr_t attr;
+	pthread_attr_init(&attr);
+	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
+
+	struct thread_data data_to_be_passed;
+	data_to_be_passed.thread_id = 42;
+	data_to_be_passed.pixels = pixels;
+	data_to_be_passed.pixelColors = pixelColors;
+	data_to_be_passed.width = width;
+	data_to_be_passed.height = height;
+	data_to_be_passed.iterations = iterations;
+	int isThreadCreated = pthread_create(&pMandelbrot, &attr, threadHandler,
+			(void *)&data_to_be_passed);
+	if (isThreadCreated) {
+		printf("Error, computation thread not created : error %d\n", isThreadCreated);
+		exit(1);
+	}
 
 	// While loop of the application
 	while (!quit) {
@@ -123,7 +154,20 @@ int main(int argc, char * argv[]) {
 	SDL_DestroyWindow(theWindow);
 	SDL_Quit();
 
+	pthread_join(pMandelbrot, NULL);
+	pthread_exit(NULL);
 	return 0;
+}
+
+
+/*
+ *	Defines the functions handeld by the computing thread
+ */
+void * threadHandler (void * passed_thread_data) {
+	struct thread_data * used_data = (struct thread_data *)passed_thread_data;
+	updateMandelbrotPixels(used_data->pixels, used_data->pixelColors, 
+			used_data->width, used_data->height, used_data->iterations);
+	pthread_exit((void *)42);
 }
 
 
@@ -179,6 +223,7 @@ void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
 
 			pixels[width * y + x] = pixelColors[a];
 		}
+		SDL_Delay(10);
 	}
 }
 
