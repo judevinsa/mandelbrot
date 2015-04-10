@@ -36,19 +36,20 @@ int main(int argc, char * argv[]) {
 
 	// Test of the conditions
 	if (width > 1024) {
-		printf("Error : maximal width is 1024\n");
+		printf("Error : maximal width is 1024 (%u chosen)\n", width);
 		return 1;
 	}
 	if (height > 768) {
-		printf("Error : maximal height is 768\n");
+		printf("Error : maximal height is 768 (%u chosen)\n", height);
 		return 1;
 	}
 	if (iterations > 30) {
-		printf("Error : maximal number of iterations is 30\n");
+		printf("Error : maximal number of iterations is 30 (%u chosen)\n", iterations);
 		return 1;
 	}
-	if (isColored != 0 || isColored != 1) {
-		printf("Error : choose you color properly, 0 is Black and White, 1 is Colored\n");
+	if (isColored != 0 && isColored != 1) {
+		printf("Error : choose you color properly, 0 is Black and White, 1 is Colored "
+			"(%d chosen)\n", isColored);
 		return 1;
 	}
 
@@ -125,7 +126,17 @@ int main(int argc, char * argv[]) {
  *	Redefines the colors that will be used on the pixels with the parameters entered
  */
 void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColored) {
-
+	for (int i = 0; i < iterations; i++) {
+		if (isColored) {
+			unsigned char red = (unsigned char)((i * (255 / iterations))/3);
+			unsigned char green = (unsigned char)((i * (255 / iterations))/6);
+			unsigned char blue = (unsigned char)(i * (255 / iterations));
+			pixelColors[i] = (((((255 << 2) + red) << 2) + green) << 2) + blue;
+		} else {
+			unsigned char gray = (unsigned char)(i * (255 / iterations));
+			pixelColors[i] = (((((255 << 2) + gray) << 2) + gray) << 2) + gray;
+		}
+	}
 }
 
 
