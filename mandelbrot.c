@@ -131,12 +131,12 @@ int main(int argc, char * argv[]) {
 void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColored) {
 	for (int i = 0; i < iterations; i++) {
 		if (isColored) {
-			unsigned char red = (unsigned char)((i * (255 / iterations))/3);
-			unsigned char green = (unsigned char)((i * (255 / iterations))/6);
-			unsigned char blue = (unsigned char)(i * (255 / iterations));
+			unsigned char red = (unsigned char)(212 + 2 * i * (255 / iterations));
+			unsigned char green = (unsigned char)(149 + 3 * i * (255 / iterations));
+			unsigned char blue = (unsigned char)(97 + i * (255 / iterations));
 			pixelColors[i] = (((((255 << 8) + red) << 8) + green) << 8) + blue;
 		} else {
-			unsigned char gray = (unsigned char)(i * (255 / iterations));
+			unsigned char gray = (unsigned char)(55 + i * (200 / iterations));
 			pixelColors[i] = (((((255 << 8) + gray) << 8) + gray) << 8) + gray;
 		}
 	}
@@ -176,7 +176,6 @@ void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
 			}
 
 			pixels[width * y + x] = pixelColors[a];
-			//printf("pixel %u %u : couleur %u, a %u\n", x, y, pixels[width * y + x],a);
 		}
 	}
 }
