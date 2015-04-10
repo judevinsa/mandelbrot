@@ -5,7 +5,8 @@
 #define uint32 unsigned int // Certified to be 32bits size on a Mac
 
 void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColored);
-void updateMandelbrotPixels(uint32 * pixels, uint32 width, uint32 height, uint32 iterations);
+void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
+		uint32 height, uint32 iterations);
 
 
 int main(int argc, char * argv[]) {
@@ -54,7 +55,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	// We allocate some memory for the pixel colors
-	pixelColors = (uint32 *)malloc(iterations * sizeof(uint32));
+	pixelColors = (uint32 *)calloc(iterations, iterations * sizeof(uint32));
 
 	// Defines the color of the mandelbrot pixels
 	defineMandelbrotColors(pixelColors, iterations, isColored);
@@ -87,8 +88,9 @@ int main(int argc, char * argv[]) {
 			SDL_TEXTUREACCESS_STATIC, width, height);
 
 	// A big bunch of pixels (pixel infos fits in an uint32)
-	pixels = (uint32 *)malloc(width * height * sizeof(uint32));
+	pixels = (uint32 *)calloc(width * height, width * height * sizeof(uint32));
 
+	updateMandelbrotPixels(pixels, pixelColors, width, height, iterations);
 
 	// While loop of the application
 	while (!quit) {
@@ -113,6 +115,7 @@ int main(int argc, char * argv[]) {
 	}
 
 	free(pixels);
+	free(pixelColors);
 	SDL_DestroyTexture(theTexture);
 	SDL_DestroyRenderer(theRenderer);
 	SDL_DestroyWindow(theWindow);
@@ -143,10 +146,39 @@ void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColor
 
 /*
  * Overwrites the pixels following the calculation of the mandelbrot figure
- *
+ *	Algorithm from : http://villemin.gerard.free.fr/Wwwgvmm/Suite/FracPrat.htm
  */
-void updateMandelbrotPixels(uint32 * pixels, uint32 width, uint32 height, uint32 iterations) {
+void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
+		uint32 height, uint32 iterations) {
+	float minX = -2.4;
+	float maxX = 2.4;
+	float minY = -1.5;
+	float maxY = 1.5;
 
+	for (uint32 x = 0; x < width; x++) {
+		for (uint32 y = 0; y < height; y++) {
+			float realC = minX + (maxX - minX) / ((float)width) * (float)x;
+			float imC = minY + (maxY - minY) / ((float)height) * (float)y;
+			float realZ = 0;
+			float imZ = 0;
+			uint32 a = 0;
+
+			for (; a < iterations; a++) {
+				float realPart = realZ;
+				float imPart = imZ;
+
+				realZ = realPart * realPart - imPart * imPart + realC;
+				imZ = 2 * realPart * imPart + imC;
+
+				if ((realZ * realZ + imZ * imZ) >= 4.0) {
+					break;
+				}
+			}
+
+			pixels[width * y + x] = pixelColors[a];
+			printf("pixel %u %u : couleur %u, a %u\n", x, y, pixels[width * y + x],a);
+		}
+	}
 }
 
 
