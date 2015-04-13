@@ -193,10 +193,8 @@ int main(int argc, char * argv[]) {
 void * threadHandler (void * passed_thread_data) {
 	struct thread_data * used_data = (struct thread_data *)passed_thread_data;
 
-	printf("I'm in the handler !\n");
 	uint32 startX = used_data->computationStart;
 	uint32 endX = startX + used_data->bandWidth;
-	printf("Things passed : %u - %u\n", startX, endX);
 	while(1) {
 		updateMandelbrotPixels(used_data->pixels, used_data->pixelColors, 
 			used_data->width, used_data->height, used_data->iterations,
