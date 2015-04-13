@@ -195,6 +195,13 @@ void * threadHandler (void * passed_thread_data) {
 
 	uint32 startX = used_data->computationStart;
 	uint32 endX = startX + used_data->bandWidth;
+
+	if (startX >= used_data->width) {
+		 return (void *)1;
+	} else if (endX > used_data->width) {
+		endX = used_data->width;
+	}
+
 	while(1) {
 		updateMandelbrotPixels(used_data->pixels, used_data->pixelColors, 
 			used_data->width, used_data->height, used_data->iterations,
