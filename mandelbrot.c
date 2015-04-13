@@ -131,12 +131,13 @@ int main(int argc, char * argv[]) {
 		SDL_UpdateTexture(theTexture, NULL, pixels, width * sizeof(uint32));
 
 		// Listens for any user event
-		SDL_WaitEvent(&event);
+		SDL_WaitEventTimeout(&event, 5);
 
 		switch (event.type) {
 
 			case SDL_QUIT :
 				quit = 1;
+				pthread_cancel(pMandelbrot);
 				break;
 			}
 
@@ -153,9 +154,9 @@ int main(int argc, char * argv[]) {
 	SDL_DestroyRenderer(theRenderer);
 	SDL_DestroyWindow(theWindow);
 	SDL_Quit();
-
-	pthread_join(pMandelbrot, NULL);
-	pthread_exit(NULL);
+	
+	void * status;
+	pthread_join(pMandelbrot, status);
 	return 0;
 }
 
@@ -220,10 +221,9 @@ void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
 					break;
 				}
 			}
-
 			pixels[width * y + x] = pixelColors[a];
 		}
-		SDL_Delay(10);
+		 SDL_Delay(10);
 	}
 }
 
