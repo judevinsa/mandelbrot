@@ -267,8 +267,8 @@ void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
 				}
 			}
 			pixels[width * y + x] = pixelColors[a];
-			SDL_Delay(1);
 		}
+		SDL_Delay(10);
 	}
 }
 
