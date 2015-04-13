@@ -6,28 +6,32 @@
 
 #define uint32 unsigned int // Certified to be 32bits size on a Mac
 
+pthread_mutex_t pixelsAccess;
+
 // Definition of threads
 struct thread_data {
-	int thread_id;
+	int threadId;
 	uint32 * pixels;
 	uint32 * pixelColors;
-	uint32 width, height, iterations;
+	uint32 width, height, iterations, bandWidth, threadNumber, computationStart;
 };
 
-void * threadHandler(void * thread_data); 
+void * threadHandler(void * thread_data);
 
 
 // Functions used in the computation process
 void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColored);
 void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
-		uint32 height, uint32 iterations);
+		uint32 height, uint32 iterations, uint32 startX, uint32 endX);
 
 
 int main(int argc, char * argv[]) {
 
-	// Various variables
+	// Eseential Variables
 	uint32 width = 1024;
 	uint32 height = 768;
+	uint32 bandWidth = 0;
+	uint32 threadNumber = 1;
 	uint32 * pixels;
 	uint32 * pixelColors;
 	uint32 iterations = 0;
@@ -37,8 +41,9 @@ int main(int argc, char * argv[]) {
 	SDL_Event event;
 
 	// We redefine the parameters
-	if (argc != 5) {
-		printf("Error, usage : mandelbrot width height iterations colored\n");
+	if (argc != 7) {
+		printf("Error, usage : mandelbrot width height iterations colored"
+			" band_width number_of_threads\n");
 		printf("For the colors : 0 is Black and White, 1 is Colored\n");
 		return 1;
 	}
@@ -48,6 +53,8 @@ int main(int argc, char * argv[]) {
 	height = (uint32)atoi(argv[2]);
 	iterations = (uint32)atoi(argv[3]);
 	isColored = atoi(argv[4]);
+	bandWidth = atoi(argv[5]);
+	threadNumber = atoi(argv[6]);
 
 	// Test of the conditions
 	if (width > 1024) {
@@ -65,6 +72,14 @@ int main(int argc, char * argv[]) {
 	if (isColored != 0 && isColored != 1) {
 		printf("Error : choose you color properly, 0 is Black and White, 1 is Colored "
 			"(%d chosen)\n", isColored);
+		return 1;
+	}
+	if (bandWidth < 1 || bandWidth > width) {
+		printf("Error : bandWidth must be between 1 and Width (%u chosen)\n", bandWidth);
+		return 1;
+	}
+	if (threadNumber < 1 || threadNumber > 100) {
+		printf("Error : threadNumber must be between 1 and 100 (%u chosen)\n", threadNumber);
 		return 1;
 	}
 
@@ -104,23 +119,32 @@ int main(int argc, char * argv[]) {
 	pixels = (uint32 *)calloc(width * height, width * height * sizeof(uint32));
 
 	// We define here the content of the pthread that will computes the Mandelbrot
-	pthread_t pMandelbrot;
+	pthread_t pMandelbrot[threadNumber];
 	pthread_attr_t attr;
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
-	struct thread_data data_to_be_passed;
-	data_to_be_passed.thread_id = 42;
-	data_to_be_passed.pixels = pixels;
-	data_to_be_passed.pixelColors = pixelColors;
-	data_to_be_passed.width = width;
-	data_to_be_passed.height = height;
-	data_to_be_passed.iterations = iterations;
-	int isThreadCreated = pthread_create(&pMandelbrot, &attr, threadHandler,
-			(void *)&data_to_be_passed);
-	if (isThreadCreated) {
-		printf("Error, computation thread not created : error %d\n", isThreadCreated);
-		exit(1);
+
+	for (int i = 0; i < threadNumber; i++) {
+		struct thread_data data_to_be_passed;
+
+		data_to_be_passed.threadId = i+1;
+		data_to_be_passed.pixels = pixels;
+		data_to_be_passed.pixelColors = pixelColors;
+		data_to_be_passed.width = width;
+		data_to_be_passed.height = height;
+		data_to_be_passed.iterations = iterations;
+		data_to_be_passed.bandWidth = bandWidth;
+		data_to_be_passed.threadNumber = threadNumber;
+		data_to_be_passed.computationStart = i * bandWidth;
+	
+		int isThreadCreated = pthread_create(&pMandelbrot[i], &attr, threadHandler,
+				(void *)&data_to_be_passed);
+	
+		if (isThreadCreated) {
+			printf("Error, computation thread not created : error %d\n", isThreadCreated);
+			exit(1);
+		}
 	}
 
 	// While loop of the application
@@ -137,7 +161,11 @@ int main(int argc, char * argv[]) {
 
 			case SDL_QUIT :
 				quit = 1;
-				pthread_cancel(pMandelbrot);
+				for (int i = 0; i < threadNumber; i++) {
+					void * status;
+					pthread_cancel(pMandelbrot[i]);
+					pthread_join(pMandelbrot[i], status);
+				}
 				break;
 			}
 
@@ -147,7 +175,6 @@ int main(int argc, char * argv[]) {
 		SDL_RenderPresent(theRenderer);
 	}
 
-
 	free(pixels);
 	free(pixelColors);
 	SDL_DestroyTexture(theTexture);
@@ -155,8 +182,6 @@ int main(int argc, char * argv[]) {
 	SDL_DestroyWindow(theWindow);
 	SDL_Quit();
 	
-	void * status;
-	pthread_join(pMandelbrot, status);
 	return 0;
 }
 
@@ -166,9 +191,28 @@ int main(int argc, char * argv[]) {
  */
 void * threadHandler (void * passed_thread_data) {
 	struct thread_data * used_data = (struct thread_data *)passed_thread_data;
-	updateMandelbrotPixels(used_data->pixels, used_data->pixelColors, 
-			used_data->width, used_data->height, used_data->iterations);
-	pthread_exit((void *)42);
+
+	uint32 startX = used_data->computationStart;
+	uint32 endX = startX + used_data->bandWidth;
+	while(1) {
+		updateMandelbrotPixels(used_data->pixels, used_data->pixelColors, 
+			used_data->width, used_data->height, used_data->iterations,
+			startX, endX);
+
+		if(startX + (used_data->threadNumber + 1) * used_data->bandWidth
+				< used_data->width) {
+			startX = startX + used_data->threadNumber * used_data->bandWidth;
+			endX = startX + used_data->bandWidth;
+		} else if (startX + used_data->threadNumber * used_data->bandWidth
+				< used_data->width) {
+			startX = startX + used_data->threadNumber * used_data->bandWidth;
+			endX = used_data->width;
+		} else {
+			break;
+		}
+	}
+
+	pthread_exit((void *) 0);
 }
 
 
@@ -196,13 +240,13 @@ void defineMandelbrotColors(uint32 * pixelColors, uint32 iterations, int isColor
  *	Algorithm from : http://villemin.gerard.free.fr/Wwwgvmm/Suite/FracPrat.htm
  */
 void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
-		uint32 height, uint32 iterations) {
+		uint32 height, uint32 iterations, uint32 startX, uint32 endX) {
 	float minX = -2.4;
 	float maxX = 2.4;
 	float minY = -1.5;
 	float maxY = 1.5;
 
-	for (uint32 x = 0; x < width; x++) {
+	for (uint32 x = startX; x < endX; x++) {
 		for (uint32 y = 0; y < height; y++) {
 			float realC = minX + (maxX - minX) / ((float)width) * (float)x;
 			float imC = minY + (maxY - minY) / ((float)height) * (float)y;
@@ -222,8 +266,8 @@ void updateMandelbrotPixels(uint32 * pixels, uint32 * pixelColors, uint32 width,
 				}
 			}
 			pixels[width * y + x] = pixelColors[a];
+			SDL_Delay(1);
 		}
-		 SDL_Delay(10);
 	}
 }
 
