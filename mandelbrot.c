@@ -6,7 +6,6 @@
 
 #define uint32 unsigned int // Certified to be 32bits size on a Mac
 
-pthread_mutex_t pixelsAccess;
 
 // Definition of threads
 struct thread_data {
@@ -124,27 +123,29 @@ int main(int argc, char * argv[]) {
 	pthread_attr_init(&attr);
 	pthread_attr_setdetachstate(&attr, PTHREAD_CREATE_JOINABLE);
 
+	struct thread_data data_to_be_passed[threadNumber];
 
 	for (int i = 0; i < threadNumber; i++) {
-		struct thread_data data_to_be_passed;
+		data_to_be_passed[i].threadId = i+1;
+		data_to_be_passed[i].pixels = pixels;
+		data_to_be_passed[i].pixelColors = pixelColors;
+		data_to_be_passed[i].width = width;
+		data_to_be_passed[i].height = height;
+		data_to_be_passed[i].iterations = iterations;
+		data_to_be_passed[i].bandWidth = bandWidth;
+		data_to_be_passed[i].threadNumber = threadNumber;
+		data_to_be_passed[i].computationStart = i * bandWidth;
+	}
 
-		data_to_be_passed.threadId = i+1;
-		data_to_be_passed.pixels = pixels;
-		data_to_be_passed.pixelColors = pixelColors;
-		data_to_be_passed.width = width;
-		data_to_be_passed.height = height;
-		data_to_be_passed.iterations = iterations;
-		data_to_be_passed.bandWidth = bandWidth;
-		data_to_be_passed.threadNumber = threadNumber;
-		data_to_be_passed.computationStart = i * bandWidth;
-	
+	for (int i = 0; i < threadNumber; i++) {
 		int isThreadCreated = pthread_create(&pMandelbrot[i], &attr, threadHandler,
-				(void *)&data_to_be_passed);
+				(void *)&data_to_be_passed[i]);
 	
 		if (isThreadCreated) {
 			printf("Error, computation thread not created : error %d\n", isThreadCreated);
 			exit(1);
 		}
+
 	}
 
 	// While loop of the application
@@ -192,8 +193,10 @@ int main(int argc, char * argv[]) {
 void * threadHandler (void * passed_thread_data) {
 	struct thread_data * used_data = (struct thread_data *)passed_thread_data;
 
+	printf("I'm in the handler !\n");
 	uint32 startX = used_data->computationStart;
 	uint32 endX = startX + used_data->bandWidth;
+	printf("Things passed : %u - %u\n", startX, endX);
 	while(1) {
 		updateMandelbrotPixels(used_data->pixels, used_data->pixelColors, 
 			used_data->width, used_data->height, used_data->iterations,
